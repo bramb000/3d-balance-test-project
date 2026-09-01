@@ -1,5 +1,5 @@
-export const COARSE_FORCE = 12;
-export const FINE_TORQUE = 1.2;
+export const COARSE_FORCE = 8;
+export const FINE_TORQUE = 0.8;
 export const GYRO_SMOOTHING = 0.15;
 export const LEG_LENGTH = 1.2;
 export const BODY_MASS = 4;

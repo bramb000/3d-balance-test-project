@@ -3,12 +3,17 @@ export const TERRAIN_GEOM = "ground";
 
 const TERRAIN_HALF = 20;
 const TERRAIN_N = 64;
+const ATTACH_R = 0.32;
+const FOOT_R = 0.82;
+const FOOT_SPHERE_R = 0.14;
+const TORSO_HALF_H = 0.35;
 
 function heightAt(x: number, y: number): number {
+  // Gentler hills — easier to balance while still uneven
   return (
-    Math.sin(x * 0.15) * Math.cos(y * 0.12) * 1.5 +
-    Math.sin(x * 0.3 + 1.2) * Math.sin(y * 0.25) * 0.8 +
-    Math.cos(x * 0.08 - y * 0.1) * 0.5
+    Math.sin(x * 0.15) * Math.cos(y * 0.12) * 0.9 +
+    Math.sin(x * 0.3 + 1.2) * Math.sin(y * 0.25) * 0.45 +
+    Math.cos(x * 0.08 - y * 0.1) * 0.25
   );
 }
 
@@ -40,23 +45,13 @@ export function buildHfieldParams(): HfieldParams {
   }
 
   const range = max - min || 1;
-  // MuJoCo requires all hfield size components to be positive.
-  // Heights are normalized 0→1; elevation scales to world range; base is z of minimum.
   const elevation = range;
   const base = 0.001;
   const normalized = raw.map((h) => ((h - min) / range).toFixed(4));
 
-  return {
-    min,
-    max,
-    range,
-    elevation,
-    base,
-    data: normalized.join(" "),
-  };
+  return { min, max, range, elevation, base, data: normalized.join(" ") };
 }
 
-/** MuJoCo world Z of terrain at (x, y) given hfield params */
 export function terrainMuJoCoZ(
   x: number,
   y: number,
@@ -67,40 +62,58 @@ export function terrainMuJoCoZ(
   return norm * params.elevation + params.base;
 }
 
-function buildLeg(legIndex: number, angle: number): string {
-  const attachR = 0.45;
-  const ax = (Math.cos(angle) * attachR).toFixed(4);
-  const ay = (Math.sin(angle) * attachR).toFixed(4);
-  const prefix = `leg${legIndex}`;
+/** Rigid strut legs welded to torso — won't collapse like hinged chains */
+function buildRigidLeg(
+  legIndex: number,
+  angle: number,
+  hfield: HfieldParams,
+  spawnZ: number
+): string {
+  const ax = Math.cos(angle) * ATTACH_R;
+  const ay = Math.sin(angle) * ATTACH_R;
+  const az = -TORSO_HALF_H;
+  const fx = Math.cos(angle) * FOOT_R;
+  const fy = Math.sin(angle) * FOOT_R;
+  const footWorldZ = terrainMuJoCoZ(fx, fy, hfield);
+  const fz = footWorldZ - spawnZ + FOOT_SPHERE_R;
+
+  const fmt = (n: number) => n.toFixed(4);
 
   return `
-    <body name="${prefix}_upper" pos="${ax} ${ay} -0.35">
-      <joint name="${prefix}_hip" type="hinge" axis="0 1 0" range="-70 70" damping="3"/>
-      <geom name="${prefix}_upper_geom" type="capsule" fromto="0 0 0 0 0 -0.55" size="0.06" rgba="0.42 0.45 0.5 1"/>
-      <body name="${prefix}_lower" pos="0 0 -0.55">
-        <joint name="${prefix}_knee" type="hinge" axis="0 1 0" range="-100 15" damping="2"/>
-        <geom name="${prefix}_lower_geom" type="capsule" fromto="0 0 0 0 0 -0.55" size="0.05" rgba="0.3 0.34 0.38 1"/>
-        <geom name="${prefix}_foot" type="sphere" size="0.12" pos="0 0 -0.55" rgba="0.22 0.25 0.28 1" friction="1.5 0.005 0.0001" condim="4"/>
-      </body>
-    </body>`;
+      <geom name="leg${legIndex}_strut" type="capsule"
+            fromto="${fmt(ax)} ${fmt(ay)} ${fmt(az)} ${fmt(fx)} ${fmt(fy)} ${fmt(fz)}"
+            size="0.07" rgba="0.42 0.45 0.5 1"/>
+      <geom name="leg${legIndex}_foot" type="sphere" size="${FOOT_SPHERE_R}"
+            pos="${fmt(fx)} ${fmt(fy)} ${fmt(fz)}" mass="0.5"
+            friction="1.8 0.005 0.0001" condim="4" rgba="0.22 0.25 0.28 1"/>`;
+}
+
+function computeSpawnZ(legCount: number, hfield: HfieldParams): number {
+  let maxFootZ = hfield.base;
+  for (let i = 0; i < legCount; i++) {
+    const angle = (i / legCount) * Math.PI * 2;
+    const fx = Math.cos(angle) * FOOT_R;
+    const fy = Math.sin(angle) * FOOT_R;
+    maxFootZ = Math.max(maxFootZ, terrainMuJoCoZ(fx, fy, hfield));
+  }
+  // Body center height: highest foot + leg clearance + torso half-height
+  return maxFootZ + 0.55 + TORSO_HALF_H + FOOT_SPHERE_R;
 }
 
 export function generateMjcf(legCount: number): string {
   const legs = Math.max(2, Math.min(12, legCount));
   const hfield = buildHfieldParams();
+  const spawnZ = computeSpawnZ(legs, hfield);
   const legXml = Array.from({ length: legs }, (_, i) =>
-    buildLeg(i, (i / legs) * Math.PI * 2)
+    buildRigidLeg(i, (i / legs) * Math.PI * 2, hfield, spawnZ)
   ).join("\n");
-
-  const spawnZ = terrainMuJoCoZ(0, 0, hfield) + 2.8;
 
   return `<mujoco model="balance_robot">
   <compiler angle="degree" inertiafromgeom="true"/>
   <option timestep="0.002" gravity="0 0 -9.81" integrator="implicitfast"
-          cone="elliptic" impratio="10" noslip_iterations="2"/>
+          cone="elliptic" impratio="10" noslip_iterations="3"/>
 
   <default>
-    <joint limited="true" armature="0.03"/>
     <geom solref="0.02 1" solimp="0.9 0.95 0.001" friction="1.2 0.005 0.0001" condim="3"/>
   </default>
 
@@ -120,7 +133,7 @@ export function generateMjcf(legCount: number): string {
 
     <body name="${TORSO_BODY}" pos="0 0 ${spawnZ.toFixed(3)}">
       <freejoint name="root"/>
-      <geom name="torso_geom" type="capsule" size="0.45 0.35" rgba="0.39 0.4 0.95 1" mass="4"/>
+      <geom name="torso_geom" type="capsule" size="0.38 0.32" rgba="0.39 0.4 0.95 1" mass="3"/>
       ${legXml}
     </body>
   </worldbody>

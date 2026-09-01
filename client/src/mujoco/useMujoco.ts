@@ -28,7 +28,7 @@ function loadModel(
   mujoco.FS.writeFile(MODEL_PATH, xml);
   const model = mujoco.MjModel.from_xml_path(MODEL_PATH);
   const data = new mujoco.MjData(model);
-  settleSimulation(mujoco, model, data, 200);
+  settleSimulation(mujoco, model, data, 400);
   return { model, data };
 }
 
