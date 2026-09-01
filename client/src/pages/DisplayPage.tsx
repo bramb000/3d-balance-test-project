@@ -1,13 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ControlPacket } from "@balance/shared";
-import { DisplayScene } from "../scene/DisplayScene";
 import { QRCode } from "../components/QRCode";
-import { LegCountPicker } from "../components/LegCountPicker";
 import { useWebSocket } from "../hooks/useWebSocket";
-import { useMujoco } from "../mujoco/useMujoco";
+import { MjswanViewer } from "../mjswan/MjswanViewer";
 import type { CameraMode } from "../config/controls";
 import { MAX_WALK_SPEED_KMH } from "../config/controls";
-import { getWalkSpeedMps } from "../physics/applyControls";
 import "../styles/display.css";
 
 const defaultControl: ControlPacket = {
@@ -17,8 +14,8 @@ const defaultControl: ControlPacket = {
 };
 
 export function DisplayPage() {
-  const [legCount, setLegCount] = useState(4);
-  const [tilt, setTilt] = useState(0);
+  const [simReady, setSimReady] = useState(false);
+  const [simError, setSimError] = useState<string | null>(null);
   const [cameraMode, setCameraMode] = useState<CameraMode>("third");
   const [liveInput, setLiveInput] = useState({
     coarseX: 0,
@@ -27,9 +24,14 @@ export function DisplayPage() {
     fineR: 0,
   });
   const controlRef = useRef<ControlPacket>(defaultControl);
-  const { simState, loading, error, ready } = useMujoco(legCount);
   const { connected, roomId, controllerConnected, onControl } =
     useWebSocket("display");
+
+  const handleSimReady = useCallback(() => setSimReady(true), []);
+  const handleSimError = useCallback((message: string) => {
+    setSimError(message);
+    setSimReady(false);
+  }, []);
 
   useEffect(() => {
     onControl((msg) => {
@@ -56,46 +58,36 @@ export function DisplayPage() {
     : "";
 
   const walkSpeedKmh =
-    getWalkSpeedMps({
-      x: liveInput.coarseX,
-      y: liveInput.coarseY,
-    }) *
-    3.6;
-
-  const tiltColor =
-    tilt < 15 ? "#22c55e" : tilt < 30 ? "#eab308" : "#ef4444";
+    Math.hypot(liveInput.coarseX, liveInput.coarseY) * MAX_WALK_SPEED_KMH;
 
   return (
     <div className="display-page">
-      {ready && simState && (
-        <DisplayScene
-          simState={simState}
-          cameraMode={cameraMode}
-          onTiltChange={setTilt}
-          controlRef={controlRef}
-        />
+      <MjswanViewer
+        controlRef={controlRef}
+        cameraMode={cameraMode}
+        onReady={handleSimReady}
+        onError={handleSimError}
+      />
+
+      {!simReady && !simError && (
+        <div className="loading-overlay">
+          <div className="loading-spinner" />
+          <p className="loading-text">Loading Unitree Go2 simulation…</p>
+          <p className="loading-detail">Powered by mjswan + trained locomotion policy</p>
+        </div>
       )}
 
-      {(loading || error) && (
+      {simError && (
         <div className="loading-overlay">
-          {error ? (
-            <>
-              <p className="loading-error">Simulation error</p>
-              <p className="loading-detail">{error}</p>
-            </>
-          ) : (
-            <>
-              <div className="loading-spinner" />
-              <p className="loading-text">Loading MuJoCo physics…</p>
-              <p className="loading-detail">First load may take a few seconds</p>
-            </>
-          )}
+          <p className="loading-error">Simulation error</p>
+          <p className="loading-detail">{simError}</p>
         </div>
       )}
 
       <div className="hud-overlay">
         <div className="hud-panel hud-top-left">
           <h1>Balance Robot</h1>
+          <p className="robot-model-label">Unitree Go2 · mjswan</p>
           <div className="status-row">
             <span className={`status-dot ${connected ? "online" : ""}`} />
             {connected ? "Connected" : "Connecting..."}
@@ -109,8 +101,8 @@ export function DisplayPage() {
               : "Waiting for controller"}
           </div>
           <div className="status-row">
-            <span className={`status-dot ${ready ? "online" : "waiting"}`} />
-            {ready ? "MuJoCo ready" : "Loading sim…"}
+            <span className={`status-dot ${simReady ? "online" : "waiting"}`} />
+            {simReady ? "Simulation ready" : "Loading sim…"}
           </div>
           <div className="camera-toggle">
             <button
@@ -145,7 +137,6 @@ export function DisplayPage() {
         </div>
 
         <div className="hud-panel hud-top-right">
-          <LegCountPicker legCount={legCount} onChange={setLegCount} />
           {roomId && (
             <div className="qr-section">
               <QRCode url={controllerUrl} size={140} />
@@ -153,24 +144,6 @@ export function DisplayPage() {
               <p className="room-id">Room: {roomId}</p>
             </div>
           )}
-        </div>
-
-        <div className="hud-panel hud-bottom">
-          <div className="balance-meter">
-            <span className="balance-label">Balance</span>
-            <div className="balance-bar-track">
-              <div
-                className="balance-bar-fill"
-                style={{
-                  width: `${Math.min(100, (tilt / 45) * 100)}%`,
-                  backgroundColor: tiltColor,
-                }}
-              />
-            </div>
-            <span className="balance-value" style={{ color: tiltColor }}>
-              {tilt.toFixed(1)}°
-            </span>
-          </div>
         </div>
       </div>
     </div>

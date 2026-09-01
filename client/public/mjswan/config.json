@@ -1,0 +1,34 @@
+{
+  "version": "0.9.3",
+  "uses_custom_js": false,
+  "projects": [
+    {
+      "name": "Balance Robot",
+      "id": "main",
+      "scenes": [
+        {
+          "name": "Go2",
+          "path": "go2/scene.mjz",
+          "camera": {
+            "lookat": [0.0, 0.0, 0.7],
+            "distance": 3.8,
+            "elevation": -20.0,
+            "azimuth": 34.0,
+            "originType": "ASSET_BODY",
+            "enableReflections": true,
+            "enableShadows": true,
+            "bodyName": "base"
+          },
+          "controlDt": 0.02,
+          "policies": [
+            {
+              "name": "Vanilla",
+              "config": "go2/vanilla.json",
+              "default": true
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

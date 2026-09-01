@@ -4,6 +4,25 @@
   position: relative;
 }
 
+.mjswan-viewport {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.mjswan-viewport canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.robot-model-label {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin: -4px 0 8px;
+}
+
 .hud-overlay {
   position: absolute;
   inset: 0;

@@ -10,11 +10,11 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    exclude: ["@mujoco/mujoco"],
+    exclude: ["mjswan"],
   },
-  assetsInclude: ["**/*.wasm"],
   build: {
-    chunkSizeWarningLimit: 25000,
+    target: "es2022",
+    chunkSizeWarningLimit: 30000,
   },
   server: {
     host: true,
