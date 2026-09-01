@@ -4,6 +4,7 @@ import { DisplayScene } from "../scene/DisplayScene";
 import { QRCode } from "../components/QRCode";
 import { LegCountPicker } from "../components/LegCountPicker";
 import { useWebSocket } from "../hooks/useWebSocket";
+import { useMujoco } from "../mujoco/useMujoco";
 import "../styles/display.css";
 
 const defaultControl: ControlPacket = {
@@ -16,6 +17,7 @@ export function DisplayPage() {
   const [legCount, setLegCount] = useState(4);
   const [tilt, setTilt] = useState(0);
   const controlRef = useRef<ControlPacket>(defaultControl);
+  const { simState, loading, error, ready } = useMujoco(legCount);
   const { connected, roomId, controllerConnected, onControl } =
     useWebSocket("display");
 
@@ -42,11 +44,30 @@ export function DisplayPage() {
 
   return (
     <div className="display-page">
-      <DisplayScene
-        legCount={legCount}
-        onTiltChange={setTilt}
-        controlRef={controlRef}
-      />
+      {ready && simState && (
+        <DisplayScene
+          simState={simState}
+          onTiltChange={setTilt}
+          controlRef={controlRef}
+        />
+      )}
+
+      {(loading || error) && (
+        <div className="loading-overlay">
+          {error ? (
+            <>
+              <p className="loading-error">Simulation error</p>
+              <p className="loading-detail">{error}</p>
+            </>
+          ) : (
+            <>
+              <div className="loading-spinner" />
+              <p className="loading-text">Loading MuJoCo physics…</p>
+              <p className="loading-detail">First load may take a few seconds</p>
+            </>
+          )}
+        </div>
+      )}
 
       <div className="hud-overlay">
         <div className="hud-panel hud-top-left">
@@ -62,6 +83,10 @@ export function DisplayPage() {
             {controllerConnected
               ? "Controller active"
               : "Waiting for controller"}
+          </div>
+          <div className="status-row">
+            <span className={`status-dot ${ready ? "online" : "waiting"}`} />
+            {ready ? "MuJoCo ready" : "Loading sim…"}
           </div>
         </div>
 

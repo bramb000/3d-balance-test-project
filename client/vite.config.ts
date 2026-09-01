@@ -9,6 +9,13 @@ export default defineConfig({
       "@balance/shared": path.resolve(__dirname, "../shared/src/index.ts"),
     },
   },
+  optimizeDeps: {
+    exclude: ["@mujoco/mujoco"],
+  },
+  assetsInclude: ["**/*.wasm"],
+  build: {
+    chunkSizeWarningLimit: 25000,
+  },
   server: {
     host: true,
     port: 5173,
