@@ -1,0 +1,170 @@
+.display-page {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.hud-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.hud-panel {
+  position: absolute;
+  pointer-events: auto;
+  background: rgba(10, 10, 20, 0.75);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.hud-top-left {
+  top: 16px;
+  left: 16px;
+}
+
+.hud-top-right {
+  top: 16px;
+  right: 16px;
+  text-align: center;
+}
+
+.hud-bottom {
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 320px;
+}
+
+.hud-top-left h1 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #a5b4fc;
+}
+
+.status-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: #9ca3af;
+  margin-top: 4px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+}
+
+.status-dot.online {
+  background: #22c55e;
+}
+
+.status-dot.waiting {
+  background: #eab308;
+}
+
+.leg-picker {
+  margin-bottom: 12px;
+}
+
+.leg-picker-label {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.leg-picker-buttons {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.leg-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #e0e0e0;
+  padding: 6px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.15s;
+}
+
+.leg-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.leg-btn.active {
+  background: #6366f1;
+  border-color: #6366f1;
+}
+
+.leg-input {
+  width: 48px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #e0e0e0;
+  padding: 6px 8px;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.qr-section {
+  margin-top: 8px;
+}
+
+.qr-label {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin-top: 8px;
+}
+
+.room-id {
+  font-size: 0.7rem;
+  color: #6b7280;
+  margin-top: 4px;
+  font-family: monospace;
+}
+
+.balance-meter {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.balance-label {
+  font-size: 0.85rem;
+  color: #9ca3af;
+  white-space: nowrap;
+}
+
+.balance-bar-track {
+  flex: 1;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.balance-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.1s, background-color 0.2s;
+}
+
+.balance-value {
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: monospace;
+  min-width: 48px;
+  text-align: right;
+}

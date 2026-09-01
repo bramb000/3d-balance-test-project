@@ -1,0 +1,11 @@
+export const COARSE_FORCE = 12;
+export const FINE_TORQUE = 1.2;
+export const GYRO_SMOOTHING = 0.15;
+export const LEG_LENGTH = 1.2;
+export const BODY_MASS = 4;
+export const BODY_RADIUS = 0.5;
+export const BODY_HEIGHT = 0.8;
+export const UPPER_LEG_LENGTH = 0.6;
+export const LOWER_LEG_LENGTH = 0.6;
+export const FOOT_RADIUS = 0.15;
+export const LEG_ATTACH_RADIUS = 0.45;

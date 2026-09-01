@@ -1,0 +1,162 @@
+.controller-page {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #0a0a0f;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+.controller-header {
+  padding: 20px 24px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.controller-header h2 {
+  font-size: 1.2rem;
+  color: #a5b4fc;
+}
+
+.controller-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: #9ca3af;
+}
+
+.control-hints {
+  padding: 0 24px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hint {
+  font-size: 0.8rem;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hint-tag {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.hint-tag.coarse {
+  background: rgba(99, 102, 241, 0.2);
+  color: #a5b4fc;
+}
+
+.hint-tag.fine {
+  background: rgba(34, 197, 94, 0.2);
+  color: #86efac;
+}
+
+.motion-btn,
+.calibrate-btn {
+  margin: 8px 24px;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.motion-btn {
+  background: #6366f1;
+  color: white;
+}
+
+.calibrate-btn {
+  background: rgba(255, 255, 255, 0.08);
+  color: #e0e0e0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.joystick-area {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.joystick-zone {
+  width: 150px;
+  height: 150px;
+  position: relative;
+  touch-action: none;
+}
+
+.joystick-base {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 2px solid rgba(255, 255, 255, 0.12);
+}
+
+.joystick-stick {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: #6366f1;
+  box-shadow: 0 2px 12px rgba(99, 102, 241, 0.4);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.gyro-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  font-size: 0.8rem;
+  color: #86efac;
+}
+
+.gyro-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.error-text {
+  padding: 24px;
+  color: #ef4444;
+  text-align: center;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+}
+
+.status-dot.online {
+  background: #22c55e;
+}
