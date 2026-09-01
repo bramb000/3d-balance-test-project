@@ -45,6 +45,11 @@ wss.on("connection", (ws) => {
           const joined = joinRoom(targetRoomId, message.role, ws);
           if (joined) {
             wsRoomMap.set(ws, targetRoomId);
+          } else {
+            send(ws, {
+              type: "join_failed",
+              reason: `Room "${targetRoomId}" not found — refresh desktop and scan the new QR code`,
+            });
           }
         }
       } catch {

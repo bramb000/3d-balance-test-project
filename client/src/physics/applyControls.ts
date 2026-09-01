@@ -30,11 +30,11 @@ export function applyControls(data: MjData, model: MjModel): void {
   const xfrc = data.xfrc_applied as Float64Array;
   const base = bodyId * 6;
 
-  // MuJoCo frame: X right, Y forward, Z up
-  xfrc[base + 0] = coarse.x * COARSE_FORCE * 0.05;
-  xfrc[base + 1] = -coarse.y * COARSE_FORCE * 0.05;
-  xfrc[base + 3] = fine.roll * FINE_TORQUE * 0.02;
-  xfrc[base + 4] = -fine.pitch * FINE_TORQUE * 0.02;
+  // MuJoCo frame: X right, Y forward, Z up (world-frame force/torque on torso)
+  xfrc[base + 0] = coarse.x * COARSE_FORCE;
+  xfrc[base + 1] = -coarse.y * COARSE_FORCE;
+  xfrc[base + 3] = fine.roll * FINE_TORQUE;
+  xfrc[base + 4] = -fine.pitch * FINE_TORQUE;
 }
 
 export function getTorsoTilt(data: MjData, model: MjModel): number {

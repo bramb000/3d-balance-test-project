@@ -16,6 +16,7 @@ const defaultControl: ControlPacket = {
 export function DisplayPage() {
   const [legCount, setLegCount] = useState(4);
   const [tilt, setTilt] = useState(0);
+  const [liveInput, setLiveInput] = useState({ coarseX: 0, coarseY: 0, fineP: 0, fineR: 0 });
   const controlRef = useRef<ControlPacket>(defaultControl);
   const { simState, loading, error, ready } = useMujoco(legCount);
   const { connected, roomId, controllerConnected, onControl } =
@@ -25,6 +26,12 @@ export function DisplayPage() {
     onControl((msg) => {
       if (msg.type === "control") {
         controlRef.current = msg.data;
+        setLiveInput({
+          coarseX: msg.data.coarse.x,
+          coarseY: msg.data.coarse.y,
+          fineP: msg.data.fine.pitch,
+          fineR: msg.data.fine.roll,
+        });
       }
     });
   }, [onControl]);
@@ -88,6 +95,17 @@ export function DisplayPage() {
             <span className={`status-dot ${ready ? "online" : "waiting"}`} />
             {ready ? "MuJoCo ready" : "Loading sim…"}
           </div>
+          {controllerConnected && (
+            <div className="input-debug">
+              <span className="input-debug-label">Input</span>
+              <span>
+                joy {liveInput.coarseX.toFixed(2)}, {liveInput.coarseY.toFixed(2)}
+              </span>
+              <span>
+                tilt {liveInput.fineP.toFixed(2)}, {liveInput.fineR.toFixed(2)}
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="hud-panel hud-top-right">

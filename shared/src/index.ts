@@ -8,6 +8,7 @@ export type ControlPacket = {
 
 export type ServerMessage =
   | { type: "room_created"; roomId: string }
+  | { type: "join_failed"; reason: string }
   | { type: "controller_joined" }
   | { type: "controller_left" }
   | { type: "control"; data: ControlPacket };

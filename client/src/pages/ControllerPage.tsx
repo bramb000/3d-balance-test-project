@@ -9,7 +9,7 @@ import "../styles/controller.css";
 
 export function ControllerPage() {
   const { roomId } = useParams<{ roomId: string }>();
-  const { connected, send } = useWebSocket("controller", roomId);
+  const { connected, send, joinError } = useWebSocket("controller", roomId);
   const { enabled, needsPermission, requestPermission, calibrate, getFineInput } =
     useDeviceOrientation();
 
@@ -58,9 +58,17 @@ export function ControllerPage() {
         <h2>Controller</h2>
         <div className="controller-status">
           <span className={`status-dot ${connected ? "online" : ""}`} />
-          {connected ? `Room ${roomId}` : "Connecting..."}
+          {joinError
+            ? "Room expired"
+            : connected
+              ? `Room ${roomId}`
+              : "Connecting..."}
         </div>
       </div>
+
+      {joinError && (
+        <p className="error-text">{joinError}</p>
+      )}
 
       <div className="control-hints">
         <div className="hint">
