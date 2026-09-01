@@ -1,9 +1,10 @@
 export const MAX_WALK_SPEED_KMH = 1;
 export const MAX_WALK_SPEED_MPS = MAX_WALK_SPEED_KMH / 3.6;
-export const STEP_LENGTH = 0.22;
-export const STEP_CLEARANCE = 0.08;
+export const STEP_LENGTH = 0.14;
+export const STEP_CLEARANCE = 0.05;
 export const SWING_DURATION = 0.45;
-export const FINE_BALANCE_GAIN = 14;
+export const FINE_BALANCE_GAIN = 8;
+export const BODY_CLEARANCE = 0.55;
 export const GYRO_SMOOTHING = 0.15;
 
 export const LEG_LENGTH = 1.2;

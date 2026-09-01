@@ -1,8 +1,8 @@
 import type { MjData, MjModel } from "./types";
 import { applyControls, getTorsoTilt } from "../physics/applyControls";
 
-const FIXED_DT = 0.002;
-const STEPS_PER_FRAME = 8;
+const FIXED_DT = 0.005;
+const STEPS_PER_FRAME = 3;
 
 export function simStep(
   mujoco: { mj_step: (m: MjModel, d: MjData) => void },
