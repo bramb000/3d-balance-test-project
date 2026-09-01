@@ -40,8 +40,10 @@ export function buildHfieldParams(): HfieldParams {
   }
 
   const range = max - min || 1;
+  // MuJoCo requires all hfield size components to be positive.
+  // Heights are normalized 0→1; elevation scales to world range; base is z of minimum.
   const elevation = range;
-  const base = min;
+  const base = 0.001;
   const normalized = raw.map((h) => ((h - min) / range).toFixed(4));
 
   return {
@@ -113,7 +115,7 @@ export function generateMjcf(legCount: number): string {
     <light pos="5 -5 12" dir="-0.3 0.3 -1" diffuse="0.8 0.8 0.8"/>
     <light pos="-5 5 8" dir="0.3 -0.3 -1" diffuse="0.4 0.4 0.5"/>
     <geom name="${TERRAIN_GEOM}" type="hfield" hfield="terrain" rgba="0.23 0.35 0.25 1" condim="3"/>
-    <geom name="safety_floor" type="box" size="50 50 1" pos="0 0 ${(hfield.base - 3).toFixed(2)}"
+    <geom name="safety_floor" type="box" size="50 50 1" pos="0 0 -2"
           rgba="0.15 0.2 0.15 0" contype="1" conaffinity="1"/>
 
     <body name="${TORSO_BODY}" pos="0 0 ${spawnZ.toFixed(3)}">

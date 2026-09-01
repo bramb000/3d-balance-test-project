@@ -28,7 +28,7 @@ function loadModel(
   mujoco.FS.writeFile(MODEL_PATH, xml);
   const model = mujoco.MjModel.from_xml_path(MODEL_PATH);
   const data = new mujoco.MjData(model);
-  settleSimulation(mujoco, model, data, 20);
+  settleSimulation(mujoco, model, data, 200);
   return { model, data };
 }
 
@@ -64,7 +64,7 @@ export function useMujoco(legCount: number) {
         }
       } catch (e) {
         if (!cancelled) {
-          setError(e instanceof Error ? e.message : "Failed to load MuJoCo");
+          setError(e instanceof Error ? e.message : String(e));
         }
       } finally {
         if (!cancelled) setLoading(false);
