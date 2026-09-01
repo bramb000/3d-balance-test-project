@@ -56,6 +56,8 @@ function buildHfieldMesh(model: MjModel, geomId: number): THREE.Mesh {
     new THREE.MeshStandardMaterial({ color: "#3a5a40", roughness: 0.9 })
   );
   mesh.receiveShadow = true;
+  // Hfield geom transform is identity at origin; don't double-apply geom_xpos
+  mesh.userData.skipTransform = true;
   return mesh;
 }
 
@@ -67,6 +69,7 @@ function buildGeomMesh(model: MjModel, geomId: number): THREE.Object3D | null {
   const ri = geomId * 4;
 
   const color = new THREE.Color(rgba[ri], rgba[ri + 1], rgba[ri + 2]);
+  if (rgba[ri + 3] < 0.01) return null;
   const mat = new THREE.MeshStandardMaterial({
     color,
     roughness: 0.45,
@@ -165,16 +168,17 @@ export function MujocoRenderer({
     const geomXmat = data.geom_xmat as Float64Array;
 
     for (const { mesh, geomId, isHfield } of visualsRef.current) {
+      if (isHfield || mesh.userData.skipTransform) {
+        mesh.position.set(0, 0, 0);
+        mesh.quaternion.identity();
+        continue;
+      }
       const p = geomId * 3;
       const m = geomId * 9;
       mujocoPosToThree(geomXpos[p], geomXpos[p + 1], geomXpos[p + 2], posVec);
       mujocoMatToThree(geomXmat, m, quat);
       mesh.position.copy(posVec);
       mesh.quaternion.copy(quat);
-      if (isHfield) {
-        mesh.rotation.set(0, 0, 0);
-        mesh.position.copy(posVec);
-      }
     }
 
     const tilt = simStep(mujoco, model, data);
