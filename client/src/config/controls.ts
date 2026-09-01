@@ -1,6 +1,11 @@
-export const COARSE_FORCE = 55;
-export const FINE_TORQUE = 18;
+export const MAX_WALK_SPEED_KMH = 1;
+export const MAX_WALK_SPEED_MPS = MAX_WALK_SPEED_KMH / 3.6;
+export const STEP_LENGTH = 0.22;
+export const STEP_CLEARANCE = 0.08;
+export const SWING_DURATION = 0.45;
+export const FINE_BALANCE_GAIN = 14;
 export const GYRO_SMOOTHING = 0.15;
+
 export const LEG_LENGTH = 1.2;
 export const BODY_MASS = 4;
 export const BODY_RADIUS = 0.5;
@@ -9,3 +14,5 @@ export const UPPER_LEG_LENGTH = 0.6;
 export const LOWER_LEG_LENGTH = 0.6;
 export const FOOT_RADIUS = 0.15;
 export const LEG_ATTACH_RADIUS = 0.45;
+
+export type CameraMode = "third" | "first";

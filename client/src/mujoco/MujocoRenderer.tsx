@@ -11,7 +11,7 @@ import {
   mujocoPosToThree,
 } from "./coords";
 import { simStep } from "./simStep";
-import { getTorsoPosition } from "../physics/applyControls";
+import { getTorsoOrientation } from "../physics/applyControls";
 import type { MjData, MjModel, MjModule } from "./types";
 
 type GeomVisual = {
@@ -112,7 +112,11 @@ type Props = {
   model: MjModel;
   data: MjData;
   onTiltChange: (tilt: number) => void;
-  onTorsoPos?: (pos: THREE.Vector3) => void;
+  onTorsoUpdate?: (torso: {
+    pos: THREE.Vector3;
+    quat: THREE.Quaternion;
+    yaw: number;
+  }) => void;
 };
 
 export function MujocoRenderer({
@@ -120,7 +124,7 @@ export function MujocoRenderer({
   model,
   data,
   onTiltChange,
-  onTorsoPos,
+  onTorsoUpdate,
 }: Props) {
   const groupRef = useRef<THREE.Group>(null);
   const visualsRef = useRef<GeomVisual[]>([]);
@@ -184,9 +188,16 @@ export function MujocoRenderer({
     const tilt = simStep(mujoco, model, data);
     onTiltChange(tilt);
 
-    if (onTorsoPos) {
-      const [tx, ty, tz] = getTorsoPosition(data, model);
-      onTorsoPos(mujocoPosToThree(tx, ty, tz, new THREE.Vector3()));
+    if (onTorsoUpdate) {
+      const { yaw, pos } = getTorsoOrientation(data, model);
+      const bodyId = model.body("torso").id;
+      const xmat = data.xmat as Float64Array;
+      mujocoMatToThree(xmat, bodyId * 9, quat);
+      onTorsoUpdate({
+        pos: mujocoPosToThree(pos[0], pos[1], pos[2], new THREE.Vector3()),
+        quat: quat.clone(),
+        yaw,
+      });
     }
   });
 

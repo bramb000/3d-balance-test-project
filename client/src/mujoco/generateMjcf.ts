@@ -1,15 +1,17 @@
 export const TORSO_BODY = "torso";
 export const TERRAIN_GEOM = "ground";
 
+export const FEMUR_LEN = 0.38;
+export const TIBIA_LEN = 0.38;
+export const ATTACH_R = 0.28;
+export const FOOT_R = 0.72;
+export const FOOT_SPHERE_R = 0.13;
+export const TORSO_HALF_H = 0.35;
+
 const TERRAIN_HALF = 20;
 const TERRAIN_N = 64;
-const ATTACH_R = 0.32;
-const FOOT_R = 0.82;
-const FOOT_SPHERE_R = 0.14;
-const TORSO_HALF_H = 0.35;
 
 function heightAt(x: number, y: number): number {
-  // Gentler hills — easier to balance while still uneven
   return (
     Math.sin(x * 0.15) * Math.cos(y * 0.12) * 0.9 +
     Math.sin(x * 0.3 + 1.2) * Math.sin(y * 0.25) * 0.45 +
@@ -62,30 +64,59 @@ export function terrainMuJoCoZ(
   return norm * params.elevation + params.base;
 }
 
-/** Rigid strut legs welded to torso — won't collapse like hinged chains */
-function buildRigidLeg(
+function fmt(n: number): string {
+  return n.toFixed(4);
+}
+
+function buildArticulatedLeg(
   legIndex: number,
   angle: number,
   hfield: HfieldParams,
   spawnZ: number
-): string {
+): { xml: string; hipRest: number; kneeRest: number } {
   const ax = Math.cos(angle) * ATTACH_R;
   const ay = Math.sin(angle) * ATTACH_R;
   const az = -TORSO_HALF_H;
-  const fx = Math.cos(angle) * FOOT_R;
-  const fy = Math.sin(angle) * FOOT_R;
-  const footWorldZ = terrainMuJoCoZ(fx, fy, hfield);
-  const fz = footWorldZ - spawnZ + FOOT_SPHERE_R;
+  const axis = `${fmt(-Math.sin(angle))} ${fmt(Math.cos(angle))} 0`;
 
-  const fmt = (n: number) => n.toFixed(4);
+  const footX = Math.cos(angle) * FOOT_R;
+  const footY = Math.sin(angle) * FOOT_R;
+  const footWorldZ = terrainMuJoCoZ(footX, footY, hfield) + FOOT_SPHERE_R;
 
-  return `
-      <geom name="leg${legIndex}_strut" type="capsule"
-            fromto="${fmt(ax)} ${fmt(ay)} ${fmt(az)} ${fmt(fx)} ${fmt(fy)} ${fmt(fz)}"
-            size="0.07" rgba="0.42 0.45 0.5 1"/>
-      <geom name="leg${legIndex}_foot" type="sphere" size="${FOOT_SPHERE_R}"
-            pos="${fmt(fx)} ${fmt(fy)} ${fmt(fz)}" mass="0.5"
-            friction="1.8 0.005 0.0001" condim="4" rgba="0.22 0.25 0.28 1"/>`;
+  const dx = footX - ax;
+  const dy = footY - ay;
+  const radial = Math.hypot(dx, dy);
+  const drop = spawnZ + az - footWorldZ;
+
+  const cosKnee =
+    (FEMUR_LEN ** 2 + TIBIA_LEN ** 2 - radial ** 2 - drop ** 2) /
+    (2 * FEMUR_LEN * TIBIA_LEN);
+  const kneeRest = -(Math.acos(Math.max(-1, Math.min(1, cosKnee))) - Math.PI);
+  const hipRest =
+    Math.atan2(radial, drop) -
+    Math.atan2(
+      TIBIA_LEN * Math.sin(-kneeRest),
+      FEMUR_LEN + TIBIA_LEN * Math.cos(-kneeRest)
+    );
+
+  const xml = `
+      <body name="hip${legIndex}" pos="${fmt(ax)} ${fmt(ay)} ${fmt(az)}">
+        <joint name="hip${legIndex}" type="hinge" axis="${axis}" range="-35 85" damping="1.2" armature="0.02"/>
+        <geom name="femur${legIndex}" type="capsule" fromto="0 0 0 0 0 ${fmt(-FEMUR_LEN)}"
+              size="0.065" rgba="0.42 0.45 0.5 1" mass="0.45"/>
+        <body name="knee${legIndex}" pos="0 0 ${fmt(-FEMUR_LEN)}">
+          <joint name="knee${legIndex}" type="hinge" axis="${axis}" range="-115 10" damping="0.9" armature="0.015"/>
+          <geom name="tibia${legIndex}" type="capsule" fromto="0 0 0 0 0 ${fmt(-TIBIA_LEN)}"
+                size="0.055" rgba="0.35 0.38 0.42 1" mass="0.35"/>
+          <body name="foot${legIndex}" pos="0 0 ${fmt(-TIBIA_LEN)}">
+            <geom name="foot${legIndex}_geom" type="sphere" size="${FOOT_SPHERE_R}"
+                  mass="0.25" friction="1.9 0.005 0.0001" condim="4"
+                  rgba="0.22 0.25 0.28 1"/>
+          </body>
+        </body>
+      </body>`;
+
+  return { xml, hipRest, kneeRest };
 }
 
 function computeSpawnZ(legCount: number, hfield: HfieldParams): number {
@@ -94,27 +125,47 @@ function computeSpawnZ(legCount: number, hfield: HfieldParams): number {
     const angle = (i / legCount) * Math.PI * 2;
     const fx = Math.cos(angle) * FOOT_R;
     const fy = Math.sin(angle) * FOOT_R;
-    maxFootZ = Math.max(maxFootZ, terrainMuJoCoZ(fx, fy, hfield));
+    maxFootZ = Math.max(
+      maxFootZ,
+      terrainMuJoCoZ(fx, fy, hfield) + FOOT_SPHERE_R
+    );
   }
-  // Body center height: highest foot + leg clearance + torso half-height
-  return maxFootZ + 0.55 + TORSO_HALF_H + FOOT_SPHERE_R;
+  return maxFootZ + FEMUR_LEN + TIBIA_LEN * 0.55 + TORSO_HALF_H;
 }
 
 export function generateMjcf(legCount: number): string {
   const legs = Math.max(2, Math.min(12, legCount));
   const hfield = buildHfieldParams();
   const spawnZ = computeSpawnZ(legs, hfield);
-  const legXml = Array.from({ length: legs }, (_, i) =>
-    buildRigidLeg(i, (i / legs) * Math.PI * 2, hfield, spawnZ)
-  ).join("\n");
+
+  const legParts: string[] = [];
+  const actuators: string[] = [];
+  const keyQpos: string[] = [`0 0 ${fmt(spawnZ)}`, "1 0 0 0"];
+
+  for (let i = 0; i < legs; i++) {
+    const angle = (i / legs) * Math.PI * 2;
+    const { xml, hipRest, kneeRest } = buildArticulatedLeg(
+      i,
+      angle,
+      hfield,
+      spawnZ
+    );
+    legParts.push(xml);
+    actuators.push(
+      `    <position name="hip${i}_act" joint="hip${i}" kp="140" kv="12" forcerange="-55 55"/>`,
+      `    <position name="knee${i}_act" joint="knee${i}" kp="120" kv="10" forcerange="-45 45"/>`
+    );
+    keyQpos.push(fmt(hipRest), fmt(kneeRest));
+  }
 
   return `<mujoco model="balance_robot">
-  <compiler angle="degree" inertiafromgeom="true"/>
+  <compiler angle="radian" inertiafromgeom="true"/>
   <option timestep="0.002" gravity="0 0 -9.81" integrator="implicitfast"
-          cone="elliptic" impratio="10" noslip_iterations="3"/>
+          cone="elliptic" impratio="10" noslip_iterations="4"/>
 
   <default>
-    <geom solref="0.02 1" solimp="0.9 0.95 0.001" friction="1.2 0.005 0.0001" condim="3"/>
+    <geom solref="0.015 1" solimp="0.92 0.96 0.001" friction="1.3 0.005 0.0001" condim="3"/>
+    <joint limited="true"/>
   </default>
 
   <asset>
@@ -131,12 +182,21 @@ export function generateMjcf(legCount: number): string {
     <geom name="safety_floor" type="box" size="50 50 1" pos="0 0 -2"
           rgba="0.15 0.2 0.15 0" contype="1" conaffinity="1"/>
 
-    <body name="${TORSO_BODY}" pos="0 0 ${spawnZ.toFixed(3)}">
+    <body name="${TORSO_BODY}" pos="0 0 ${fmt(spawnZ)}">
       <freejoint name="root"/>
-      <geom name="torso_geom" type="capsule" size="0.38 0.32" rgba="0.39 0.4 0.95 1" mass="3"/>
-      ${legXml}
+      <geom name="torso_geom" type="capsule" size="0.36 0.30" rgba="0.39 0.4 0.95 1" mass="3.2"/>
+      <site name="head" pos="0 0 0.42" size="0.04" rgba="1 0.3 0.3 0.6"/>
+      ${legParts.join("\n")}
     </body>
   </worldbody>
+
+  <actuator>
+${actuators.join("\n")}
+  </actuator>
+
+  <keyframe>
+    <key name="stand" qpos="${keyQpos.join(" ")}" ctrl="${keyQpos.slice(4).join(" ")}"/>
+  </keyframe>
 </mujoco>`;
 }
 

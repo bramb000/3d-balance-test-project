@@ -73,11 +73,11 @@ export function ControllerPage() {
       <div className="control-hints">
         <div className="hint">
           <span className="hint-tag coarse">Coarse</span>
-          Joystick — move & shift weight
+          Joystick — walk relative to viewport (1 km/h max)
         </div>
         <div className="hint">
           <span className="hint-tag fine">Fine</span>
-          Tilt phone — balance correction
+          Tilt phone — balance on uneven terrain
         </div>
       </div>
 

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import loadMujoco from "@mujoco/mujoco";
 import { generateMjcf } from "./generateMjcf";
+import { resetLocomotion } from "../physics/applyControls";
 import { settleSimulation } from "./simStep";
 import type { MjData, MjModel, MjModule, MujocoState } from "./types";
 
@@ -28,7 +29,14 @@ function loadModel(
   mujoco.FS.writeFile(MODEL_PATH, xml);
   const model = mujoco.MjModel.from_xml_path(MODEL_PATH);
   const data = new mujoco.MjData(model);
-  settleSimulation(mujoco, model, data, 400);
+  resetLocomotion(legCount);
+  try {
+    const keyId = model.key("stand").id;
+    mujoco.mj_resetDataKeyframe(model, data, keyId);
+  } catch {
+    // fall back to default pose
+  }
+  settleSimulation(mujoco, model, data, 500);
   return { model, data };
 }
 

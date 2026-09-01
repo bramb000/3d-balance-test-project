@@ -3,19 +3,73 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Sky } from "@react-three/drei";
 import * as THREE from "three";
 import type { ControlPacket } from "@balance/shared";
+import type { CameraMode } from "../config/controls";
 import { setLatestControl } from "../physics/applyControls";
+import { setViewFrame, threeBasisToMuJoCo } from "../physics/viewFrame";
 import { MujocoRenderer } from "../mujoco/MujocoRenderer";
 import type { MujocoState } from "../mujoco/types";
 
-function FollowCamera({ targetRef }: { targetRef: React.RefObject<THREE.Vector3> }) {
+export type TorsoState = {
+  pos: THREE.Vector3;
+  quat: THREE.Quaternion;
+  yaw: number;
+};
+
+function updateViewFrameFromCamera(camera: THREE.Camera): void {
+  const forward = new THREE.Vector3();
+  camera.getWorldDirection(forward);
+  forward.y = 0;
+  if (forward.lengthSq() < 1e-6) forward.set(0, 0, -1);
+  forward.normalize();
+
+  const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0));
+  if (right.lengthSq() < 1e-6) right.set(1, 0, 0);
+  right.normalize();
+
+  const mj = threeBasisToMuJoCo(
+    { x: forward.x, z: forward.z },
+    { x: right.x, z: right.z }
+  );
+  setViewFrame(mj.forward, mj.right);
+}
+
+function RobotCamera({
+  mode,
+  torsoRef,
+}: {
+  mode: CameraMode;
+  torsoRef: React.RefObject<TorsoState | null>;
+}) {
   const { camera } = useThree();
   const desired = useMemo(() => new THREE.Vector3(), []);
+  const lookAt = useMemo(() => new THREE.Vector3(), []);
+  const forward = useMemo(() => new THREE.Vector3(), []);
+  const eyeOffset = useMemo(() => new THREE.Vector3(0, 0.42, 0), []);
 
   useFrame(() => {
-    const target = targetRef.current ?? { x: 0, y: 3, z: 0 };
-    desired.set(target.x, target.y + 4, target.z + 8);
-    camera.position.lerp(desired, 0.05);
-    camera.lookAt(target.x, target.y, target.z);
+    const torso = torsoRef.current;
+    if (!torso) return;
+
+    if (mode === "first") {
+      desired.copy(eyeOffset).applyQuaternion(torso.quat).add(torso.pos);
+      forward.set(0, 0, -1).applyQuaternion(torso.quat).normalize();
+      lookAt.copy(desired).add(forward.multiplyScalar(3));
+      camera.position.lerp(desired, 0.35);
+    } else {
+      forward.set(0, 0, -1).applyQuaternion(torso.quat);
+      forward.y = 0;
+      if (forward.lengthSq() < 1e-6) forward.set(0, 0, -1);
+      forward.normalize();
+      desired
+        .copy(torso.pos)
+        .addScaledVector(forward, -5)
+        .add(new THREE.Vector3(0, 2.8, 0));
+      lookAt.copy(torso.pos).add(new THREE.Vector3(0, 0.35, 0));
+      camera.position.lerp(desired, 0.08);
+    }
+
+    camera.lookAt(lookAt);
+    updateViewFrameFromCamera(camera);
   });
 
   return null;
@@ -23,16 +77,18 @@ function FollowCamera({ targetRef }: { targetRef: React.RefObject<THREE.Vector3>
 
 type SceneProps = {
   simState: MujocoState;
+  cameraMode: CameraMode;
   onTiltChange: (tilt: number) => void;
   controlRef: React.MutableRefObject<ControlPacket | null>;
-  torsoTargetRef: React.RefObject<THREE.Vector3>;
+  torsoRef: React.RefObject<TorsoState | null>;
 };
 
 function SceneContent({
   simState,
+  cameraMode,
   onTiltChange,
   controlRef,
-  torsoTargetRef,
+  torsoRef,
 }: SceneProps) {
   useFrame(() => {
     if (controlRef.current) {
@@ -55,46 +111,59 @@ function SceneContent({
         model={simState.model}
         data={simState.data}
         onTiltChange={onTiltChange}
-        onTorsoPos={(pos) => {
-          if (torsoTargetRef.current) {
-            torsoTargetRef.current.copy(pos);
+        onTorsoUpdate={(torso) => {
+          if (torsoRef.current) {
+            torsoRef.current.pos.copy(torso.pos);
+            torsoRef.current.quat.copy(torso.quat);
+            torsoRef.current.yaw = torso.yaw;
           }
         }}
       />
-      <FollowCamera targetRef={torsoTargetRef} />
+      <RobotCamera mode={cameraMode} torsoRef={torsoRef} />
     </>
   );
 }
 
 type DisplaySceneProps = {
   simState: MujocoState | null;
+  cameraMode: CameraMode;
   onTiltChange: (tilt: number) => void;
   controlRef: React.MutableRefObject<ControlPacket | null>;
 };
 
 export function DisplayScene({
   simState,
+  cameraMode,
   onTiltChange,
   controlRef,
 }: DisplaySceneProps) {
-  const torsoTargetRef = useRef(new THREE.Vector3(0, 3, 0));
+  const torsoRef = useRef<TorsoState>({
+    pos: new THREE.Vector3(0, 3, 0),
+    quat: new THREE.Quaternion(),
+    yaw: 0,
+  });
 
   if (!simState) return null;
 
   return (
     <Canvas
       shadows
-      camera={{ position: [0, 5, 10], fov: 50 }}
+      camera={{ position: [0, 5, 10], fov: modeFov(cameraMode) }}
       style={{ width: "100%", height: "100%" }}
     >
       <Suspense fallback={null}>
         <SceneContent
           simState={simState}
+          cameraMode={cameraMode}
           onTiltChange={onTiltChange}
           controlRef={controlRef}
-          torsoTargetRef={torsoTargetRef}
+          torsoRef={torsoRef}
         />
       </Suspense>
     </Canvas>
   );
+}
+
+function modeFov(mode: CameraMode): number {
+  return mode === "first" ? 72 : 50;
 }

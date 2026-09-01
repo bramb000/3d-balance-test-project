@@ -9,7 +9,7 @@ export function simStep(
   model: MjModel,
   data: MjData
 ): number {
-  applyControls(data, model);
+  applyControls(data, model, FIXED_DT * STEPS_PER_FRAME);
   for (let i = 0; i < STEPS_PER_FRAME; i++) {
     mujoco.mj_step(model, data);
   }

@@ -5,6 +5,9 @@ import { QRCode } from "../components/QRCode";
 import { LegCountPicker } from "../components/LegCountPicker";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { useMujoco } from "../mujoco/useMujoco";
+import type { CameraMode } from "../config/controls";
+import { MAX_WALK_SPEED_KMH } from "../config/controls";
+import { getWalkSpeedMps } from "../physics/applyControls";
 import "../styles/display.css";
 
 const defaultControl: ControlPacket = {
@@ -16,7 +19,13 @@ const defaultControl: ControlPacket = {
 export function DisplayPage() {
   const [legCount, setLegCount] = useState(4);
   const [tilt, setTilt] = useState(0);
-  const [liveInput, setLiveInput] = useState({ coarseX: 0, coarseY: 0, fineP: 0, fineR: 0 });
+  const [cameraMode, setCameraMode] = useState<CameraMode>("third");
+  const [liveInput, setLiveInput] = useState({
+    coarseX: 0,
+    coarseY: 0,
+    fineP: 0,
+    fineR: 0,
+  });
   const controlRef = useRef<ControlPacket>(defaultControl);
   const { simState, loading, error, ready } = useMujoco(legCount);
   const { connected, roomId, controllerConnected, onControl } =
@@ -46,6 +55,13 @@ export function DisplayPage() {
     ? `${window.location.protocol}//${window.location.hostname}${window.location.port ? `:${window.location.port}` : ""}/controller/${roomId}`
     : "";
 
+  const walkSpeedKmh =
+    getWalkSpeedMps({
+      x: liveInput.coarseX,
+      y: liveInput.coarseY,
+    }) *
+    3.6;
+
   const tiltColor =
     tilt < 15 ? "#22c55e" : tilt < 30 ? "#eab308" : "#ef4444";
 
@@ -54,6 +70,7 @@ export function DisplayPage() {
       {ready && simState && (
         <DisplayScene
           simState={simState}
+          cameraMode={cameraMode}
           onTiltChange={setTilt}
           controlRef={controlRef}
         />
@@ -95,6 +112,22 @@ export function DisplayPage() {
             <span className={`status-dot ${ready ? "online" : "waiting"}`} />
             {ready ? "MuJoCo ready" : "Loading sim…"}
           </div>
+          <div className="camera-toggle">
+            <button
+              type="button"
+              className={cameraMode === "third" ? "active" : ""}
+              onClick={() => setCameraMode("third")}
+            >
+              3rd person
+            </button>
+            <button
+              type="button"
+              className={cameraMode === "first" ? "active" : ""}
+              onClick={() => setCameraMode("first")}
+            >
+              1st person
+            </button>
+          </div>
           {controllerConnected && (
             <div className="input-debug">
               <span className="input-debug-label">Input</span>
@@ -103,6 +136,9 @@ export function DisplayPage() {
               </span>
               <span>
                 tilt {liveInput.fineP.toFixed(2)}, {liveInput.fineR.toFixed(2)}
+              </span>
+              <span>
+                walk {walkSpeedKmh.toFixed(2)} km/h (max {MAX_WALK_SPEED_KMH})
               </span>
             </div>
           )}
