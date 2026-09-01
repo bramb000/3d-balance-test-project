@@ -1,6 +1,7 @@
 import express from "express";
 import { createServer } from "http";
 import path from "path";
+import { existsSync } from "fs";
 import { fileURLToPath } from "url";
 import { WebSocketServer, WebSocket } from "ws";
 import type { ClientMessage, ServerMessage } from "@balance/shared";
@@ -13,7 +14,6 @@ import {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT) || 3001;
-const isDev = process.env.NODE_ENV !== "production";
 
 const app = express();
 const server = createServer(app);
@@ -64,17 +64,37 @@ wss.on("connection", (ws) => {
   });
 });
 
-if (!isDev) {
-  const clientDist = path.join(__dirname, "../../client/dist");
+function resolveClientDist(): string | null {
+  const candidates = [
+    path.join(__dirname, "public"),
+    path.join(__dirname, "../../client/dist"),
+    path.join(process.cwd(), "client/dist"),
+  ];
+  for (const dir of candidates) {
+    if (existsSync(path.join(dir, "index.html"))) return dir;
+  }
+  return null;
+}
+
+const clientDist = resolveClientDist();
+
+if (clientDist) {
+  console.log(`Serving client from ${clientDist}`);
   app.use(express.static(clientDist));
   app.get("*", (_req, res) => {
     res.sendFile(path.join(clientDist, "index.html"));
+  });
+} else {
+  console.warn("Client dist not found — run npm run build");
+  app.get("/", (_req, res) => {
+    res
+      .status(503)
+      .type("text")
+      .send("Client not built. Check Render build logs.");
   });
 }
 
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on http://0.0.0.0:${PORT}`);
-  if (isDev) {
-    console.log(`WebSocket: ws://0.0.0.0:${PORT}/ws`);
-  }
+  console.log(`WebSocket: ws://0.0.0.0:${PORT}/ws`);
 });
