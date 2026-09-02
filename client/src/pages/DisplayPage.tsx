@@ -24,6 +24,7 @@ export function DisplayPage() {
     fineR: 0,
   });
   const controlRef = useRef<ControlPacket>(defaultControl);
+  const resetSimRef = useRef<(() => void) | null>(null);
   const { connected, roomId, controllerConnected, onControl } =
     useWebSocket("display");
 
@@ -65,6 +66,7 @@ export function DisplayPage() {
       <MjswanViewer
         controlRef={controlRef}
         cameraMode={cameraMode}
+        resetRef={resetSimRef}
         onReady={handleSimReady}
         onError={handleSimError}
       />
@@ -87,7 +89,7 @@ export function DisplayPage() {
       <div className="hud-overlay">
         <div className="hud-panel hud-top-left">
           <h1>Balance Robot</h1>
-          <p className="robot-model-label">Unitree Go2 · mjswan</p>
+          <p className="robot-model-label">Unitree Go2 · Robust policy</p>
           <div className="status-row">
             <span className={`status-dot ${connected ? "online" : ""}`} />
             {connected ? "Connected" : "Connecting..."}
@@ -118,6 +120,13 @@ export function DisplayPage() {
               onClick={() => setCameraMode("first")}
             >
               1st person
+            </button>
+            <button
+              type="button"
+              disabled={!simReady}
+              onClick={() => resetSimRef.current?.()}
+            >
+              Reset
             </button>
           </div>
           {controllerConnected && (

@@ -22,9 +22,13 @@
           "controlDt": 0.02,
           "policies": [
             {
-              "name": "Vanilla",
-              "config": "go2/vanilla.json",
+              "name": "Robust",
+              "config": "go2/robust.json",
               "default": true
+            },
+            {
+              "name": "Vanilla",
+              "config": "go2/vanilla.json"
             }
           ]
         }
