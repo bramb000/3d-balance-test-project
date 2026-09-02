@@ -130,7 +130,7 @@ export function DisplayPage() {
                 tilt {liveInput.fineP.toFixed(2)}, {liveInput.fineR.toFixed(2)}
               </span>
               <span>
-                walk {walkSpeedKmh.toFixed(2)} km/h (max {MAX_WALK_SPEED_KMH})
+                walk {walkSpeedKmh.toFixed(2)} km/h (max {MAX_WALK_SPEED_KMH.toFixed(1)})
               </span>
             </div>
           )}

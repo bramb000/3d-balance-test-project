@@ -73,7 +73,7 @@ export function ControllerPage() {
       <div className="control-hints">
         <div className="hint">
           <span className="hint-tag coarse">Coarse</span>
-          Joystick — walk relative to viewport (1 km/h max)
+          Joystick — walk (WASD on desktop also works)
         </div>
         <div className="hint">
           <span className="hint-tag fine">Fine</span>
